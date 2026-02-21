@@ -1,10 +1,12 @@
 import plotly.express as px
 import streamlit as st
 import pandas as pd
-import datetime as dt
-import seaborn as sns
-import matplotlib.pyplot as plt
 import numpy as np
+
+st.set_page_config(
+    layout="wide",
+)
+
 
 file = st.file_uploader("Upload your Strava 'activities.csv' file")
 
@@ -20,9 +22,8 @@ if file:
                 .query("`Activity Type` not in ['Walk','Workout','Weight Training'] and Commute == False"))
     df_weeks = df_clean.copy()
     df_weeks["DayOfWeek"] = df_weeks["Activity Date"].dt.day_of_week
-    df_weeks["Hour"] = df_weeks["Activity Date"].dt.hour
-    df_weeks["Minute"] = df_weeks["Hour"] * \
-        60+df_weeks["Activity Date"].dt.minute
+    df_weeks["Minute"] = df_weeks["Activity Date"].dt.hour * \
+        60 + df_weeks["Activity Date"].dt.minute
 
     minutes_in_day = np.arange(60*24)
     minutes_named = pd.date_range(
@@ -53,10 +54,6 @@ if file:
     cols = heatmap_cropped.columns
     tick_labels = [name for name in cols if str(name).endswith(":00")]
 
-    st.set_page_config(
-        layout="wide",
-    )
-
     fig = px.imshow(
         heatmap_cropped,
         color_continuous_scale="PuBu",
@@ -82,6 +79,6 @@ if file:
         margin=dict(l=20, r=20, t=20, b=20)
     )
 
-    st.plotly_chart(fig)
+    chart = st.plotly_chart(fig)
 else:
     st.title("No file loaded yet")
