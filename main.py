@@ -31,8 +31,12 @@ if file:
     activity_starts = df_weeks["Minute"].values[:, None]
     activity_ends = activity_starts + \
         (df_weeks["Elapsed Time"]/60).values[:, None]
-    activity_mask = (minutes_in_day >= activity_starts) & (
-        minutes_in_day <= activity_ends).astype(int)
+    crosses_midnight = activity_ends > 24*60
+    activity_mask = np.where(crosses_midnight,
+                             (minutes_in_day >= activity_starts) | (
+                                 minutes_in_day <= activity_ends-24*60),
+                             ((minutes_in_day >= activity_starts) & (
+                                 minutes_in_day <= activity_ends).astype(int)))
     activity_heatmap = (pd.DataFrame(activity_mask, index=df_weeks["Activity ID"], columns=minutes_named)
                         .reset_index()
                         .merge(df_weeks[["Activity ID", "DayOfWeek"]], left_on="Activity ID", right_on="Activity ID")
@@ -43,42 +47,42 @@ if file:
 
     activity_sum = activity_heatmap.sum()
     active_minutes = activity_sum.to_numpy().nonzero()[0]
-    margin = 30
+    MARGIN = 30
     if len(active_minutes) > 0:
         first_idx = active_minutes[0]
         last_idx = active_minutes[-1]
-        start_cut = max(0, first_idx - margin)
-        end_cut = min(1440, last_idx + margin)
+        start_cut = max(0, first_idx - MARGIN)
+        end_cut = min(1440, last_idx + MARGIN)
         heatmap_cropped = activity_heatmap.iloc[:, start_cut:end_cut]
 
-    cols = heatmap_cropped.columns
-    tick_labels = [name for name in cols if str(name).endswith(":00")]
+        cols = heatmap_cropped.columns
+        tick_labels = [name for name in cols if str(name).endswith(":00")]
 
-    fig = px.imshow(
-        heatmap_cropped,
-        color_continuous_scale="PuBu",
-        aspect="auto"
-    )
-
-    fig.update_xaxes(
-        tickmode='array',
-        tickvals=tick_labels,
-        ticktext=tick_labels
-    )
-    for tick in tick_labels:
-        fig.add_vline(
-            x=tick,
-            line_width=1,
-            line_dash="dash",
-            line_color="black",
-            opacity=0.2
+        fig = px.imshow(
+            heatmap_cropped,
+            color_continuous_scale="PuBu",
+            aspect="auto"
         )
 
-    fig.update_layout(
-        height=600,
-        margin=dict(l=20, r=20, t=20, b=20)
-    )
+        fig.update_xaxes(
+            tickmode='array',
+            tickvals=tick_labels,
+            ticktext=tick_labels
+        )
+        for tick in tick_labels:
+            fig.add_vline(
+                x=tick,
+                line_width=1,
+                line_dash="dash",
+                line_color="black",
+                opacity=0.2
+            )
 
-    chart = st.plotly_chart(fig)
+        fig.update_layout(
+            height=600,
+            margin=dict(l=20, r=20, t=20, b=20)
+        )
+
+        chart = st.plotly_chart(fig)
 else:
     st.title("No file loaded yet")
